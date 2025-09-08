@@ -367,7 +367,15 @@ class SimMedical_Packs_Ultra_Safe {
         $product = wc_get_product($product_id);
         $price = 0;
         if ($product && $product->is_type('variable')) {
-            $variation = $this->find_matching_variation($product, $attributes);
+            // Format attributes for WooCommerce compatibility
+            $formatted_attributes = [];
+            foreach ($attributes as $attr_key => $attr_value) {
+                // Ensure the attribute key has the 'attribute_' prefix for WooCommerce
+                $key = strpos($attr_key, 'attribute_') === 0 ? $attr_key : 'attribute_' . sanitize_title($attr_key);
+                $formatted_attributes[$key] = $attr_value;
+            }
+            
+            $variation = $this->find_matching_variation($product, $formatted_attributes);
             if ($variation) $price = floatval($variation->get_price());
         }
         wp_send_json_success(['price' => $price, 'price_html' => $price ? wc_price($price) : '$0']);
@@ -491,17 +499,15 @@ class SimMedical_Packs_Ultra_Safe {
 
     private function find_matching_variation($variable_product, $attributes) {
         if (empty($attributes)) return false;
-        foreach ($variable_product->get_available_variations() as $variation_array) {
-            $found = true;
-            foreach ($attributes as $attr_key => $attr_value) {
-                $variation_attr = $variation_array['attributes']['attribute_' . sanitize_title($attr_key)] ?? '';
-                if ($variation_attr !== $attr_value) {
-                    $found = false;
-                    break;
-                }
-            }
-            if ($found) return wc_get_product($variation_array['variation_id']);
+        
+        // Use WooCommerce built-in method to find variation
+        $data_store = WC_Data_Store::load('product');
+        $variation_id = $data_store->find_matching_product_variation($variable_product, $attributes);
+        
+        if ($variation_id) {
+            return wc_get_product($variation_id);
         }
+        
         return false;
     }
 
