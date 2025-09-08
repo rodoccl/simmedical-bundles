@@ -1,0 +1,15 @@
+#pack_products_container ul {
+    padding-left: 0;
+}
+#pack_products_container li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+#pack_products_container a.remove-pack-product {
+    font-size: 1.1em;
+    margin-left: 10px;
+}
+#pack_total_info {
+    margin-top: 10px;
+}

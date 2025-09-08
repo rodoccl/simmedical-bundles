@@ -1,0 +1,36 @@
+.simmedical_bundle_options .form-field {
+    margin-bottom: 18px;
+}
+.smb-discount-info-active {
+    background: #e8f5e9;
+    border: 1px solid #27ae60;
+    padding: 8px 14px;
+    border-radius: 8px;
+    margin-top: 8px;
+    color: #1d5a38;
+    font-size: 1.02em;
+}
+.smb-products-preview {
+    background: #f5f8fa;
+    border: 1px solid #6fcf97;
+    padding: 10px 16px;
+    border-radius: 8px;
+    margin-top: 10px;
+    color: #333;
+}
+.smb-products-preview h4 {
+    margin:0 0 10px 0;
+    color: #27ae60;
+    font-size: 1.12em;
+}
+.smb-products-preview ul {
+    margin:0;
+    padding-left:18px;
+}
+.smb-products-preview li {
+    margin-bottom:4px;
+}
+.simmedical_bundle_options.bundle-active {
+    border-left: 3px solid #27ae60;
+    background: #f1f8f4;
+}
