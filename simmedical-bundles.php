@@ -363,14 +363,24 @@ class SimMedical_Packs_Ultra_Safe {
     public function ajax_variation_price() {
         check_ajax_referer('smp_pack_nonce', 'nonce');
         $product_id = intval($_POST['product_id']);
-        $attributes = $_POST['attributes'];
+        $attributes = isset($_POST['attributes']) ? array_map('wc_clean', $_POST['attributes']) : [];
         $product = wc_get_product($product_id);
         $price = 0;
+        $in_stock = false;
+        
         if ($product && $product->is_type('variable')) {
             $variation = $this->find_matching_variation($product, $attributes);
-            if ($variation) $price = floatval($variation->get_price());
+            if ($variation) {
+                $price = floatval($variation->get_price());
+                $in_stock = $variation->is_in_stock();
+            }
         }
-        wp_send_json_success(['price' => $price, 'price_html' => $price ? wc_price($price) : '$0']);
+        
+        wp_send_json_success([
+            'price' => $price, 
+            'price_html' => $price ? wc_price($price) : '$0',
+            'in_stock' => $in_stock
+        ]);
     }
 
     public function intercept_pack_add_to_cart($passed, $product_id, $quantity) {
@@ -429,6 +439,15 @@ class SimMedical_Packs_Ultra_Safe {
                         $variation_attributes = $variations_data[$product_id] ?? [];
                         $variation = $this->find_matching_variation($product, $variation_attributes);
                         if ($variation) {
+                            // Check if the specific variation is out of stock
+                            if (!$variation->is_in_stock()) {
+                                $error = true;
+                                $error_msgs[] = sprintf(
+                                    'La variación seleccionada de "%s" no tiene stock disponible. Por favor, selecciona otra opción.',
+                                    $product->get_name()
+                                );
+                                continue;
+                            }
                             $variation_id = $variation->get_id();
                             $variation_price = $variation->get_price();
                         } else {
@@ -491,16 +510,26 @@ class SimMedical_Packs_Ultra_Safe {
 
     private function find_matching_variation($variable_product, $attributes) {
         if (empty($attributes)) return false;
-        foreach ($variable_product->get_available_variations() as $variation_array) {
+        
+        // Search through ALL variation children, not just available ones
+        foreach ($variable_product->get_children() as $variation_id) {
+            $variation_attributes = wc_get_product_variation_attributes($variation_id);
             $found = true;
+            
             foreach ($attributes as $attr_key => $attr_value) {
-                $variation_attr = $variation_array['attributes']['attribute_' . sanitize_title($attr_key)] ?? '';
+                // Normalize attribute key to match WooCommerce format
+                $normalized_key = 'attribute_' . sanitize_title($attr_key);
+                $variation_attr = $variation_attributes[$normalized_key] ?? '';
+                
                 if ($variation_attr !== $attr_value) {
                     $found = false;
                     break;
                 }
             }
-            if ($found) return wc_get_product($variation_array['variation_id']);
+            
+            if ($found) {
+                return wc_get_product($variation_id);
+            }
         }
         return false;
     }
