@@ -29,8 +29,20 @@ function simmedical_pack_admin_metabox($post) {
     $pack_products   = get_post_meta($post->ID, '_pack_products', true);
     $pack_sale_price = get_post_meta($post->ID, '_pack_sale_price', true);
     $pack_qty_map    = get_post_meta($post->ID, '_pack_qty', true);
+    $current_grabado = get_post_meta($post->ID, '_grabado_id', true);
     if (!is_array($pack_qty_map)) $pack_qty_map = [];
     $product_ids = $pack_products ? array_filter(array_map('intval', explode(',', $pack_products))) : [];
+
+    // Grabado selection section
+    echo '<h4 style="margin-top:1em;">Grabado Láser:</h4>';
+    echo '<p>Los productos agregados se asociarán al grabado seleccionado.</p>';
+    $grabado_options = function_exists('simmedical_get_grabado_options') ? simmedical_get_grabado_options() : array();
+    echo '<select name="grabado_id" id="grabado_id" style="width: 300px;">';
+    foreach ($grabado_options as $value => $label) {
+        echo '<option value="' . esc_attr($value) . '"' . selected($current_grabado, $value, false) . '>' . esc_html($label) . '</option>';
+    }
+    echo '</select>';
+    echo '<p class="description">Selecciona el grabado al que pertenecerán los productos de este pack. <a href="' . admin_url('edit.php?post_type=product&page=simmedical-grabados') . '" target="_blank">Gestionar grabados</a></p>';
 
     // Obtener precios nativos actuales del producto pack (para la nota)
     $product_obj = wc_get_product($post->ID);
@@ -310,6 +322,24 @@ add_action('woocommerce_process_product_meta', function($post_id){
             update_post_meta($post_id, '_pack_products', sanitize_text_field($_POST['pack_products']));
         }
 
+        // Handle grabado assignment
+        if (isset($_POST['grabado_id'])) {
+            $grabado_id = sanitize_text_field($_POST['grabado_id']);
+            if (!empty($grabado_id)) {
+                update_post_meta($post_id, '_grabado_id', $grabado_id);
+                
+                // Associate all products in the pack with the selected grabado
+                $product_ids = isset($_POST['pack_products']) ? array_filter(array_map('intval', explode(',', $_POST['pack_products']))) : [];
+                foreach ($product_ids as $pid) {
+                    if (function_exists('simmedical_associate_product_with_grabado')) {
+                        simmedical_associate_product_with_grabado($pid, $grabado_id);
+                    }
+                }
+            } else {
+                delete_post_meta($post_id, '_grabado_id');
+            }
+        }
+
         // Guardar mapa de cantidades por producto hijo
         $pack_qty_map = [];
         if (isset($_POST['pack_qty']) && is_array($_POST['pack_qty'])) {
@@ -367,6 +397,7 @@ add_action('woocommerce_process_product_meta', function($post_id){
         delete_post_meta($post_id, '_pack_products');
         delete_post_meta($post_id, '_pack_sale_price');
         delete_post_meta($post_id, '_pack_qty');
+        delete_post_meta($post_id, '_grabado_id');
         if ($product) {
             $product->set_regular_price('');
             $product->set_sale_price('');
