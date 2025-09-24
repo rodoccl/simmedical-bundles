@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) exit;
 require_once plugin_dir_path(__FILE__) . 'simmedical-pack-form.php';
 require_once plugin_dir_path(__FILE__) . 'simmedical-pack-admin.php';
 require_once plugin_dir_path(__FILE__) . 'simmedical-pack-wcpa.php';
+require_once plugin_dir_path(__FILE__) . 'simmedical-grabado-admin.php';
 
 class SimMedical_Bundles {
 
